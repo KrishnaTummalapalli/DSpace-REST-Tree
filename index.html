@@ -1,0 +1,122 @@
+<html>
+<head>
+<title>Community List</title>
+<script type="text/javascript" src="jquery.js"></script>
+<script type="text/javascript" src="jquery.jstree.js"></script>
+<script type="text/javascript">
+    
+    var ROOT_NODE = -1;
+
+    $(document).ready(function () {
+        $("#tree").jstree({
+            "json_data" : {
+                "ajax" : {
+                    headers: {'Accept':'application/json','Content-Type':'text/json'},
+                    type : 'GET',
+                    dataType : 'json',
+                    "url" : function (node) {
+                        var url = "";
+
+                        if(node == ROOT_NODE) {
+                            url = loadRoot();
+                        } else {
+                            url = loadNode(node);  
+                        }
+
+                        return url;
+                    },
+                    "success" : function(json) {
+                        //console.log(json);
+                        var treeData = [];
+
+                        if($.isArray(json)) {
+                            //Loop through full Root community-list
+                            for(i=0; i<json.length; i++)
+                            {
+                                community = json[i];
+                                treeData.push(parseCommunity(community));
+                            }
+
+                        } else {
+                            //Probably just a single object, i.e. single community, to get sub-objects
+                            subCom = json.subcommunities;
+                            for(i=0; i<subCom.length; i++)
+                            {
+                                subcommunity = subCom[i];
+                                treeData.push(parseCommunity(subcommunity));   
+                            }
+
+                            collections = json.collections;
+                            for(j=0; j<collections.length; j++) {
+                                collection = collections[j];
+                                treeData.push(parseCollection(collection));
+                            }
+                        }
+
+                        return treeData;
+                    }
+                }
+            },
+        "plugins" : [ "themes", "json_data" ]
+    });
+});
+
+function loadRoot() {
+    url = "http://localhost:8080/rest/communities/";
+    return url;
+}
+
+function loadNode(node) {
+    nodeLink = node.attr('link');
+    url = "http://localhost:8080" + nodeLink + "?expand=all";  
+    return url;                    
+}
+
+function parseCommunity(community) {
+    obj = {};
+    obj.data = {};
+    obj.data.attr = {};
+    obj.attr = {};
+    obj.state = "closed";
+    obj.metadata = {};
+    obj.data.title = community.name;
+    obj.attr.id = community.id;
+    obj.attr.link = community.link;
+    obj.attr.type = community.type;
+    obj.data.attr.href = {};
+    obj.data.attr.href = "http://localhost:8080/xmlui/handle/"+community.handle;
+    return obj;
+}
+
+function parseCollection(collection) {
+    obj = {};
+    obj.data = {};
+    obj.data.attr = {};
+    obj.attr = {};
+    obj.state = "leaf";
+    obj.metadata = {};
+    obj.data.title = collection.name;
+    //obj.href = "http://localhost:8080/xmlui/handle/"+collection.handle;
+    obj.attr.id = collection.id;
+    obj.attr.link = collection.link;
+    obj.attr.type = collection.type;
+    obj.data.attr.href = {};
+    obj.data.attr.href = "http://localhost:8080/xmlui/handle/"+collection.handle;
+    return obj;
+}
+
+</script>
+
+</head>
+<body>
+    <h1> Knowledge Bank </h1>
+    <p>
+        <a href="#" onClick="$('#tree').jstree('open_all')" id="target">Expand All</a>
+        | 
+        <a href="#" onClick="$('#tree').jstree('close_all')" id="target">Collapse</a>
+    </p>
+
+    <div id='tree'></div>
+
+</body>
+</html>
